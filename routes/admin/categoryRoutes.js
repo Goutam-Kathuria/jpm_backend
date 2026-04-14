@@ -1,23 +1,16 @@
 const express = require("express");
 const {
-  createCategory,
-  deleteCategory,
-  getAllCategories,
-  getCategoryById,
-  getWebsiteCategoryPreview,
-  updateCategory,
+  getCategory,
+  addCategory,
+  editCategory,
 } = require("../../controllers/admin/categoryController");
 const { verifyAdminToken } = require("../../middleware/auth");
 const { uploadSingleImage } = require("../../middleware/multer");
 
 const router = express.Router();
 
-
-// router.get("/", verifyAdminToken, getAllCategories);
-// router.get("/website-view", verifyAdminToken, getWebsiteCategoryPreview);
-// router.get("/:id", verifyAdminToken, getCategoryById);
-// router.post("/", verifyAdminToken, uploadSingleImage, createCategory);
-// router.put("/:id", verifyAdminToken, uploadSingleImage, updateCategory);
-// router.delete("/:id", verifyAdminToken, deleteCategory);
+router.get("/get-category", verifyAdminToken, getCategory);
+router.post("/add-category", verifyAdminToken, uploadSingleImage, addCategory);
+router.post("/edit-category/:id", verifyAdminToken, uploadSingleImage, editCategory);
 
 module.exports = router;
