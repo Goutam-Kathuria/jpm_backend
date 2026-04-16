@@ -4,8 +4,8 @@ const {
   addCategory,
   editCategory,
 } = require("../../controllers/admin/categoryController");
-const { verifyAdminToken } = require("../../middleware/auth");
-const { uploadSingleImage } = require("../../middleware/multer");
+const verifyAdminToken = require("../../middleware/auth");
+const uploadSingleImage = require("../../middleware/auth");
 
 const router = express.Router();
 
