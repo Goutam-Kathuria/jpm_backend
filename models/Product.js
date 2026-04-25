@@ -108,7 +108,6 @@ productSchema.pre("validate", async function (next) {
       this.metaDescription = (this.shortDescription || this.description || "").slice(0, 160);
     }
 
-    next();
   } catch (error) {
     next(error);
   }

@@ -1,4 +1,5 @@
 const Category = require("../../models/Category");
+const Product = require("../../models/Product");
 const { isValidObjectId } = require("../../utils/category");
 
 const UPLOAD_BASE_PATH = "/assets/uploads";
@@ -102,6 +103,7 @@ exports.addCategory = async (req, res) => {
       category,
     });
   } catch (error) {
+    console.log("Error creating category:", error);
     if (error.code === 11000) {
       return res.status(409).json({ message: "Category slug already exists." });
     }
@@ -161,6 +163,34 @@ exports.editCategory = async (req, res) => {
       return res.status(409).json({ message: "Category slug already exists." });
     }
 
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid category id." });
+    }
+
+    const productCount = await Product.countDocuments({ categoryId: id });
+    if (productCount > 0) {
+      return res.status(409).json({
+        message: "Category has products. Move or delete products first.",
+      });
+    }
+
+    const category = await Category.findByIdAndDelete(id);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found." });
+    }
+
+    return res.status(200).json({
+      message: "Category deleted successfully.",
+    });
+  } catch (error) {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
