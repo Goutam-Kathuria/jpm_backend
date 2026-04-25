@@ -1,8 +1,13 @@
 const mongoose = require("mongoose");
 const { generateUniqueSlug } = require("../utils/slug");
 
-const categorySchema = new mongoose.Schema(
+const productSchema = new mongoose.Schema(
   {
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
     name: {
       type: String,
       required: true,
@@ -19,7 +24,36 @@ const categorySchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    gallery: {
+      type: [String],
+      default: [],
+    },
+    shortDescription: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    material: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    frame: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    cushions: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    warranty: {
       type: String,
       trim: true,
       default: "",
@@ -52,7 +86,7 @@ const categorySchema = new mongoose.Schema(
   },
 );
 
-categorySchema.pre("validate", async function (next) {
+productSchema.pre("validate", async function (next) {
   try {
     if (!this.name && !this.slug) {
       return next();
@@ -70,8 +104,8 @@ categorySchema.pre("validate", async function (next) {
       this.metaTitle = this.name;
     }
 
-    if (!this.metaDescription && this.description) {
-      this.metaDescription = this.description.slice(0, 160);
+    if (!this.metaDescription) {
+      this.metaDescription = (this.shortDescription || this.description || "").slice(0, 160);
     }
 
     next();
@@ -80,4 +114,4 @@ categorySchema.pre("validate", async function (next) {
   }
 });
 
-module.exports = mongoose.models.Category || mongoose.model("Category", categorySchema);
+module.exports = mongoose.models.Product || mongoose.model("Product", productSchema);

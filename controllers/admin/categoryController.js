@@ -1,130 +1,166 @@
 const Category = require("../../models/Category");
 const { isValidObjectId } = require("../../utils/category");
 
-// Helper function to get file from request
-const getUploadedFile = (req, fieldName = "image") => {
-  if (req.file) {
-    return req.file;
-  }
-  if (req.files && Array.isArray(req.files[fieldName])) {
-    return req.files[fieldName][0];
-  }
-  if (Array.isArray(req.files) && req.files.length > 0) {
-    return req.files[0];
-  }
-  return null;
-};
+const UPLOAD_BASE_PATH = "/assets/uploads";
 
-// Helper function to get file URL
-const getUploadedFileUrl = (file) => {
-  if (!file) {
-    return "";
+const parseArrayField = (value) => {
+  if (!value) {
+    return [];
   }
-  
-  // For local disk storage
-  if (file.path) {
-    const path = require("path");
-    const normalizedPath = file.path.split(path.sep);
-    const assetsIndex = normalizedPath.lastIndexOf("assets");
-    if (assetsIndex !== -1) {
-      return `/${normalizedPath.slice(assetsIndex).join("/")}`;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsedValue = JSON.parse(value);
+      if (Array.isArray(parsedValue)) {
+        return parsedValue.map((item) => String(item).trim()).filter(Boolean);
+      }
+    } catch (error) {
+      return value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
     }
   }
-  
-  if (file.filename && file.fieldname) {
-    return `/assets/${file.fieldname}/${file.filename}`;
-  }
-  
-  return "";
+
+  return [];
 };
 
-// Format category response
-const formatCategory = (category) => ({
-  _id: category._id,
-  name: category.name,
-  image: category.image,
-  tags: category.tags,
-  createdAt: category.createdAt,
-  updatedAt: category.updatedAt,
-});
+const parseBoolean = (value) => {
+  if (value === undefined) {
+    return undefined;
+  }
 
-// Get all categories
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  const normalizedValue = String(value).toLowerCase();
+  return normalizedValue === "true" || normalizedValue === "1";
+};
+
+const parseNumber = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const numberValue = Number(value);
+  return Number.isNaN(numberValue) ? undefined : numberValue;
+};
+
 exports.getCategory = async (req, res) => {
   try {
-    const categories = await Category.find();
+    const categories = await Category.find().sort({ order: 1, createdAt: -1 });
 
-    res.json({
-      categories: categories.map(formatCategory),
+    return res.status(200).json({
+      message: "Categories fetched successfully",
+      categories,
     });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// Add new category
 exports.addCategory = async (req, res) => {
   try {
-    const {name, tags} = req.body;
-    const uploadedFile = getUploadedFile(req);
+    const {
+      name,
+      slug,
+      description,
+      tags,
+      metaTitle,
+      metaDescription,
+      isActive,
+      order,
+    } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Category name is required." });
     }
 
+    const image = req.files?.image?.[0]?.filename
+      ? `${UPLOAD_BASE_PATH}/${req.files.image[0].filename}`
+      : "";
+
     const category = await Category.create({
       name,
-      image: getUploadedFileUrl(uploadedFile),
-      tags,
+      slug,
+      image,
+      description,
+      tags: parseArrayField(tags),
+      metaTitle,
+      metaDescription,
+      isActive: parseBoolean(isActive),
+      order: parseNumber(order),
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Category created successfully.",
-      category: formatCategory(category),
+      category,
     });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Category slug already exists." });
+    }
+
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// Edit category
 exports.editCategory = async (req, res) => {
   try {
     const { id } = req.params;
+    const {
+      name,
+      slug,
+      description,
+      tags,
+      metaTitle,
+      metaDescription,
+      isActive,
+      order,
+    } = req.body;
 
-    const { name, tags} = req.body;
     if (!isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid category id." });
     }
 
     const category = await Category.findById(id);
-
     if (!category) {
       return res.status(404).json({ message: "Category not found." });
     }
 
-    // Update name if provided
-    if (name !== undefined) {     
-      category.name = name;
-    }
+    if (name !== undefined) category.name = name;
+    if (slug !== undefined) category.slug = slug;
+    if (description !== undefined) category.description = description;
+    if (tags !== undefined) category.tags = parseArrayField(tags);
+    if (metaTitle !== undefined) category.metaTitle = metaTitle;
+    if (metaDescription !== undefined) category.metaDescription = metaDescription;
 
-    // Update tags if provided
-    if (tags !== undefined) {
-      category.tags = Array.isArray(tags) ? tags : [];
-    }
+    const activeValue = parseBoolean(isActive);
+    if (activeValue !== undefined) category.isActive = activeValue;
 
-    // Update image if file is uploaded
-    const uploadedFile = getUploadedFile(req);
-    if (uploadedFile) {
-      category.image = getUploadedFileUrl(uploadedFile);
+    const orderValue = parseNumber(order);
+    if (orderValue !== undefined) category.order = orderValue;
+
+    if (req.files?.image?.[0]?.filename) {
+      category.image = `${UPLOAD_BASE_PATH}/${req.files.image[0].filename}`;
     }
 
     await category.save();
 
-    res.json({
+    return res.status(200).json({
       message: "Category updated successfully.",
-      category: formatCategory(category),
+      category,
     });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Category slug already exists." });
+    }
+
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
