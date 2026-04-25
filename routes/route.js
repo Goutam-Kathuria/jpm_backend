@@ -9,6 +9,7 @@ const websiteCategoryRoutes = require("./website/categoryRoutes");
 const websiteGalleryRoutes = require("./website/galleryRoutes");
 const websiteProductRoutes = require("./website/productRoutes");
 const websiteReviewRoutes = require("./website/reviewRoutes");
+const websiteSettingRoutes = require("./website/settingRoutes");
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.use("/website/categories", websiteCategoryRoutes);
 router.use("/website/gallery", websiteGalleryRoutes);
 router.use("/website/products", websiteProductRoutes);
 router.use("/website/reviews", websiteReviewRoutes);
+router.use("/website/settings", websiteSettingRoutes);
 
 module.exports = router;
