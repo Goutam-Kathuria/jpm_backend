@@ -26,6 +26,4 @@ const websiteContentSchema = new mongoose.Schema(
   },
 );
 
-module.exports =
-  mongoose.models.WebsiteContent ||
-  mongoose.model("WebsiteContent", websiteContentSchema);
+module.exports = mongoose.model("WebsiteContent", websiteContentSchema);
